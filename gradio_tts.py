@@ -55,34 +55,49 @@ def generate_audio(text, voice, speed):
         # パイプライン取得
         pipeline = get_pipeline()
         
-        # 音声生成 - より安全な方法
+        # 音声生成 - 正しいKokoro API使用
         try:
-            # 直接生成を試す
-            audio_result = pipeline.infer(text, voice=voice, speed=speed)
-            
-            # 結果の型をチェック
-            if hasattr(audio_result, 'audio'):
-                audio_data = audio_result.audio
-            elif isinstance(audio_result, (list, tuple)) and len(audio_result) > 0:
-                audio_data = audio_result[0] if hasattr(audio_result[0], 'audio') else audio_result[0]
-            else:
-                audio_data = audio_result
-                
-        except AttributeError:
-            # フォールバック: ジェネレーター方式
+            # Kokoroの正しい使用方法
             audio_generator = pipeline(text, voice=voice, speed=speed)
+            
+            # 音声チャンクを収集
             audio_chunks = []
             for chunk in audio_generator:
                 if chunk is not None:
+                    # chunkがnumpy配列かテンソルかチェック
+                    if hasattr(chunk, 'numpy'):
+                        chunk = chunk.numpy()
+                    elif hasattr(chunk, 'detach'):
+                        chunk = chunk.detach().cpu().numpy()
                     audio_chunks.append(chunk)
             
             if not audio_chunks:
                 return None, "音声生成に失敗しました"
             
+            print(f"音声チャンク数: {len(audio_chunks)}")
+            print(f"最初のチャンク形状: {audio_chunks[0].shape if hasattr(audio_chunks[0], 'shape') else type(audio_chunks[0])}")
+            
+            # チャンクを結合
             if len(audio_chunks) == 1:
                 audio_data = audio_chunks[0]
             else:
-                audio_data = np.concatenate(audio_chunks, axis=0)
+                # 各チャンクが同じ次元か確認
+                try:
+                    audio_data = np.concatenate(audio_chunks, axis=0)
+                except ValueError as e:
+                    print(f"結合エラー: {e}")
+                    # 1次元に変換してから結合
+                    flattened_chunks = []
+                    for chunk in audio_chunks:
+                        if hasattr(chunk, 'flatten'):
+                            flattened_chunks.append(chunk.flatten())
+                        else:
+                            flattened_chunks.append(np.array(chunk).flatten())
+                    audio_data = np.concatenate(flattened_chunks)
+                    
+        except Exception as e:
+            print(f"音声生成エラー: {e}")
+            return None, f"音声生成エラー: {str(e)}"
         
         # numpy配列に正規化
         if not isinstance(audio_data, np.ndarray):
