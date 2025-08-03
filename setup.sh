@@ -3,31 +3,67 @@
 
 echo "Kokoro-TTS軽量版セットアップ開始..."
 
-# Python仮想環境作成（Python 3.12使用）
+# Ubuntu/Debian依存関係チェック
+if [ -f "/etc/debian_version" ]; then
+    echo "Ubuntu/Debian検出 - 必要なパッケージを確認中..."
+    
+    # python3-venvパッケージの確認とインストール
+    if command -v python3.12 &> /dev/null; then
+        PYTHON_VERSION="3.12"
+        PYTHON_CMD="python3.12"
+    elif command -v python3.11 &> /dev/null; then
+        PYTHON_VERSION="3.11"
+        PYTHON_CMD="python3.11"
+    elif command -v python3.10 &> /dev/null; then
+        PYTHON_VERSION="3.10"
+        PYTHON_CMD="python3.10"
+    else
+        echo "⚠️  Python 3.10-3.12が必要です"
+        echo "インストール: sudo apt install python3.11 python3.11-venv"
+        exit 1
+    fi
+    
+    echo "Python ${PYTHON_VERSION}使用（Kokoro互換性のため）"
+    
+    # venvパッケージの存在確認
+    if ! dpkg -l | grep -q "python${PYTHON_VERSION}-venv"; then
+        echo "python${PYTHON_VERSION}-venvパッケージをインストール中..."
+        sudo apt update
+        sudo apt install -y python${PYTHON_VERSION}-venv
+    fi
+else
+    # macOS等の場合
+    if command -v python3.12 &> /dev/null; then
+        PYTHON_CMD="python3.12"
+    elif command -v python3.11 &> /dev/null; then
+        PYTHON_CMD="python3.11"
+    elif command -v python3.10 &> /dev/null; then
+        PYTHON_CMD="python3.10"
+    else
+        echo "⚠️  Python 3.10-3.12が必要です"
+        echo "macOS: brew install python@3.12"
+        exit 1
+    fi
+fi
+
+# Python仮想環境作成
 if [ ! -d "venv" ]; then
     echo "Python仮想環境作成中..."
+    $PYTHON_CMD -m venv venv
     
-    # Python 3.12の存在確認
-    if command -v python3.12 &> /dev/null; then
-        echo "Python 3.12使用（Kokoro互換性のため）"
-        python3.12 -m venv venv
-    elif command -v python3.11 &> /dev/null; then
-        echo "Python 3.11使用（Kokoro互換性のため）"
-        python3.11 -m venv venv
-    elif command -v python3.10 &> /dev/null; then
-        echo "Python 3.10使用（Kokoro互換性のため）"
-        python3.10 -m venv venv
-    else
-        echo "⚠️  Python 3.10-3.12が必要です（現在のPython 3.13は非対応）"
-        echo "以下でインストールしてください："
-        echo "macOS: brew install python@3.12"
-        echo "Ubuntu: sudo apt install python3.12 python3.12-venv"
+    if [ $? -ne 0 ]; then
+        echo "❌ 仮想環境作成に失敗しました"
         exit 1
     fi
 fi
 
 # 仮想環境アクティベート
-source venv/bin/activate
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+else
+    echo "❌ 仮想環境のアクティベートに失敗しました"
+    exit 1
+fi
 
 # 依存関係インストール
 echo "依存関係インストール中..."
