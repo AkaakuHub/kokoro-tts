@@ -3,26 +3,16 @@
 Swagger UI付きKokoro-82M TTS API
 """
 
-import os
 import io
-import gc
-import threading
-import multiprocessing
-from functools import lru_cache
+import soundfile as sf
 from flask import Flask, request, send_file
 from flask_restx import Api, Resource, fields
-import soundfile as sf
-
-# CPUコア数を自動検出して最大活用
-cpu_count = multiprocessing.cpu_count()
-os.environ['OMP_NUM_THREADS'] = str(cpu_count)
-os.environ['MKL_NUM_THREADS'] = str(cpu_count)
-
-try:
-    from kokoro import KPipeline
-except ImportError:
-    print("kokoroライブラリが必要です。pip install kokoro>=0.9.4")
-    exit(1)
+from kokoro_core import (
+    generate_audio_data,
+    get_voice_info,
+    get_system_info,
+    ALL_VOICES
+)
 
 app = Flask(__name__)
 api = Api(
