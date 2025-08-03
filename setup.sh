@@ -49,19 +49,38 @@ fi
 # Python仮想環境作成
 if [ ! -d "venv" ]; then
     echo "Python仮想環境作成中..."
+    echo "使用コマンド: $PYTHON_CMD -m venv venv"
     $PYTHON_CMD -m venv venv
     
     if [ $? -ne 0 ]; then
         echo "❌ 仮想環境作成に失敗しました"
+        echo "手動で実行してテスト: $PYTHON_CMD -m venv test_venv"
         exit 1
     fi
+    echo "✅ 仮想環境作成完了"
+else
+    echo "既存の仮想環境を使用"
 fi
+
+# ファイル存在確認（デバッグ）
+echo "仮想環境ファイル確認:"
+ls -la venv/ 2>/dev/null || echo "venvディレクトリが存在しません"
+ls -la venv/bin/ 2>/dev/null || echo "venv/binディレクトリが存在しません"
 
 # 仮想環境アクティベート
 if [ -f "venv/bin/activate" ]; then
+    echo "✅ activate ファイル発見、仮想環境アクティベート中..."
     source venv/bin/activate
+    echo "✅ 仮想環境アクティベート完了"
+    echo "Python: $(which python)"
+    echo "Pip: $(which pip)"
 else
     echo "❌ 仮想環境のアクティベートに失敗しました"
+    echo "詳細:"
+    echo "- venvディレクトリ存在: $([ -d "venv" ] && echo "YES" || echo "NO")"
+    echo "- activate ファイル存在: $([ -f "venv/bin/activate" ] && echo "YES" || echo "NO")"
+    echo "- venv内容:"
+    find venv -type f 2>/dev/null | head -10 || echo "venvディレクトリが空または存在しません"
     exit 1
 fi
 
