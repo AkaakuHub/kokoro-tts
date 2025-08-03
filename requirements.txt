@@ -8,3 +8,4 @@ numpy
 misaki[ja]
 misaki[zh]
 misaki[en]
+unidic-lite

@@ -7,6 +7,11 @@ echo "Kokoro-TTS軽量版セットアップ開始..."
 if [ -f "/etc/debian_version" ]; then
     echo "Ubuntu/Debian検出 - 必要なパッケージを確認中..."
     
+    # MeCab関連パッケージのインストール
+    echo "MeCab日本語解析器をインストール中..."
+    sudo apt update
+    sudo apt install -y mecab libmecab-dev mecab-ipadic-utf8
+    
     # python3-venvパッケージの確認とインストール
     if command -v python3.12 &> /dev/null; then
         PYTHON_VERSION="3.12"
