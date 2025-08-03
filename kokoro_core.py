@@ -17,6 +17,45 @@ cpu_count = multiprocessing.cpu_count()
 os.environ['OMP_NUM_THREADS'] = str(cpu_count)
 os.environ['MKL_NUM_THREADS'] = str(cpu_count)
 
+# MeCab環境変数を設定（日本語サポート用）
+def setup_mecab_environment():
+    """MeCab環境変数を自動設定"""
+    import subprocess
+    import shutil
+    
+    # MeCabがインストールされているかチェック
+    if not shutil.which('mecab'):
+        print("⚠️  MeCabがインストールされていません")
+        return
+    
+    # IPADIC辞書ディレクトリを探す
+    mecab_dicdir = None
+    for path in ["/var/lib/mecab/dic/ipadic-utf8", "/var/lib/mecab/dic/ipadic"]:
+        if os.path.isdir(path):
+            mecab_dicdir = path
+            break
+    
+    if mecab_dicdir:
+        os.environ['MECAB_DICDIR'] = mecab_dicdir
+        print(f"MeCab辞書パス設定: {mecab_dicdir}")
+    
+    # mecabrcファイルを探す
+    mecabrc = None
+    for path in ["/etc/mecabrc", "/usr/local/etc/mecabrc"]:
+        if os.path.isfile(path):
+            mecabrc = path
+            break
+    
+    if mecabrc:
+        os.environ['MECABRC'] = mecabrc
+        print(f"MeCabrc設定: {mecabrc}")
+    else:
+        os.environ['MECABRC'] = '/dev/null'
+        print("MeCabrc: 無効化")
+
+# MeCab環境を初期化
+setup_mecab_environment()
+
 try:
     from kokoro import KPipeline
 except ImportError:

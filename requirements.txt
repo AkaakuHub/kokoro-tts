@@ -8,4 +8,5 @@ numpy
 misaki[ja]
 misaki[zh]
 misaki[en]
-unidic-lite
+mecab-python3
+fugashi

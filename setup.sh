@@ -9,8 +9,12 @@ if [ -f "/etc/debian_version" ]; then
     
     # MeCab関連パッケージのインストール
     echo "MeCab日本語解析器をインストール中..."
-    sudo apt update
-    sudo apt install -y mecab libmecab-dev mecab-ipadic-utf8
+    if ! command -v mecab &> /dev/null; then
+        sudo apt update
+        sudo apt install -y mecab libmecab-dev mecab-ipadic-utf8
+    else
+        echo "MeCabは既にインストールされています"
+    fi
     
     # python3-venvパッケージの確認とインストール
     if command -v python3.12 &> /dev/null; then
@@ -126,6 +130,7 @@ echo "3. 開発用サーバー: ./run_lightweight.sh"
 echo "4. 本番用サーバー: ./run_production.sh"
 echo "5. Swaggerテスト: ./run_test.sh"
 echo "6. シンプルテスト: ./run_client_test.sh"
+echo "7. 🧪 MeCabテスト: ./run_mecab_test.sh"
 echo ""
 echo "または仮想環境をアクティベートしてから:"
 echo "source venv/bin/activate"
