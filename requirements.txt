@@ -3,3 +3,5 @@ soundfile
 flask
 flask-restx
 waitress
+gradio
+numpy
