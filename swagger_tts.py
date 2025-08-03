@@ -119,7 +119,32 @@ class TTSGenerate(Resource):
             
             # 音声生成
             audio_generator = pipeline(text, voice=voice, speed=speed)
-            audio_data = next(audio_generator)
+            
+            # 音声チャンクを収集
+            audio_chunks = []
+            for chunk in audio_generator:
+                if chunk is not None:
+                    audio_chunks.append(chunk)
+            
+            if not audio_chunks:
+                api.abort(500, "音声生成に失敗しました")
+            
+            # 音声データを結合
+            import numpy as np
+            if len(audio_chunks) == 1:
+                audio_data = audio_chunks[0]
+            else:
+                audio_data = np.concatenate(audio_chunks, axis=0)
+            
+            # numpy配列であることを確認
+            if not isinstance(audio_data, np.ndarray):
+                audio_data = np.array(audio_data, dtype=np.float32)
+            
+            # 1次元配列に変換（必要に応じて）
+            if audio_data.ndim > 1:
+                audio_data = audio_data.flatten()
+            
+            print(f"音声データ形状: {audio_data.shape}, データ型: {audio_data.dtype}")
             
             # メモリ上でWAVファイル作成
             buffer = io.BytesIO()
@@ -127,7 +152,7 @@ class TTSGenerate(Resource):
             buffer.seek(0)
             
             # メモリ解放
-            del audio_data
+            del audio_data, audio_chunks
             gc.collect()
             
             return send_file(
