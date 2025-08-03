@@ -45,9 +45,8 @@ def test_swagger_ui():
     print("\n🌐 Swagger UI開始...")
     
     try:
-        # ブラウザでSwagger UI開く
-        webbrowser.open("http://localhost:8000/")
-        print("✅ ブラウザでSwagger UIを開きました")
+        # ブラウザ自動起動はスキップ（手動でアクセス）
+        print("✅ Swagger UI準備完了")
         print("📖 URL: http://localhost:8000/")
         
         return True

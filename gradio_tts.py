@@ -144,5 +144,5 @@ if __name__ == '__main__':
         server_name="0.0.0.0",
         server_port=7860,
         share=False,
-        inbrowser=True
+        inbrowser=False  # ブラウザ自動起動を無効化
     )
