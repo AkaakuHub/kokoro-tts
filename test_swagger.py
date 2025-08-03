@@ -46,9 +46,9 @@ def test_swagger_ui():
     
     try:
         # ブラウザでSwagger UI開く
-        webbrowser.open("http://localhost:8000/swagger")
+        webbrowser.open("http://localhost:8000/")
         print("✅ ブラウザでSwagger UIを開きました")
-        print("📖 URL: http://localhost:8000/swagger")
+        print("📖 URL: http://localhost:8000/")
         
         return True
     except Exception as e:
@@ -142,7 +142,7 @@ def main():
         print("\n" + "=" * 50)
         print("🎉 テスト完了!")
         print("\n📖 Swagger UI で以下をテストできます:")
-        print("1. http://localhost:8000/swagger にアクセス")
+        print("1. http://localhost:8000/ にアクセス")
         print("2. 'tts' セクションを展開")
         print("3. '/tts/generate' の 'Try it out' をクリック")
         print("4. テキストと音声を入力して 'Execute'")

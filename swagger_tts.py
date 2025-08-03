@@ -30,7 +30,7 @@ api = Api(
     version='1.0',
     title='Kokoro-82M TTS API',
     description='軽量音声合成API - Swagger UIから音声テスト可能',
-    doc='/swagger'
+    doc='/'  # ルートパスでSwagger UIを表示
 )
 
 # API名前空間
@@ -141,37 +141,7 @@ class TTSGenerate(Resource):
             print(f"エラー: {str(e)}")
             api.abort(500, str(e))
 
-# ルートパスでSwagger UIにリダイレクト
-@app.route('/')
-def root():
-    return '''
-    <html>
-    <head><title>Kokoro-82M TTS API</title></head>
-    <body style="font-family: Arial, sans-serif; padding: 20px;">
-        <h1>🎤 Kokoro-82M TTS API</h1>
-        <p>軽量音声合成APIサーバーが稼働中です。</p>
-        <h2>📖 API ドキュメント</h2>
-        <p><a href="/swagger" style="color: #007bff; text-decoration: none; font-size: 18px;">
-        → Swagger UI でAPIテスト</a></p>
-        
-        <h2>🚀 クイックテスト</h2>
-        <p>以下のcurlコマンドでAPIをテストできます：</p>
-        <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px;">
-curl -X POST "http://localhost:8000/tts/generate" \\
-     -H "Content-Type: application/json" \\
-     -d '{"text": "Hello, this is Kokoro TTS!", "voice": "af_heart"}' \\
-     --output test.wav
-        </pre>
-        
-        <h2>ℹ️ システム情報</h2>
-        <ul>
-            <li>モデル: Kokoro-82M (82M parameters)</li>
-            <li>CPUコア数: ''' + str(cpu_count) + '''</li>
-            <li>最適化: メモリ効率化、パイプラインキャッシュ</li>
-        </ul>
-    </body>
-    </html>
-    '''
+# ルートパスはSwagger UIが自動的に処理します
 
 if __name__ == '__main__':
     print("Kokoro-82M Swagger TTS API起動中...")
@@ -182,7 +152,7 @@ if __name__ == '__main__':
     print("- パイプラインキャッシュ: 有効")
     print()
     print("🌐 アクセス URL:")
-    print("- Swagger UI: http://localhost:8000/swagger")
-    print("- API Root: http://localhost:8000/")
+    print("- Swagger UI: http://localhost:8000/ (ルートパス)")
+    print("- API Docs: http://localhost:8000/")
     
     app.run(host='0.0.0.0', port=8000, debug=False, threaded=True)
