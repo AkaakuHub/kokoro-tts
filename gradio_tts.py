@@ -64,18 +64,41 @@ def generate_audio(text, voice, speed):
             audio_chunks = []
             for chunk in audio_generator:
                 if chunk is not None:
-                    # chunkがnumpy配列かテンソルかチェック
-                    if hasattr(chunk, 'numpy'):
-                        chunk = chunk.numpy()
-                    elif hasattr(chunk, 'detach'):
-                        chunk = chunk.detach().cpu().numpy()
-                    audio_chunks.append(chunk)
+                    # KPipeline.Resultオブジェクトから音声データを取得
+                    if hasattr(chunk, 'audio'):
+                        audio_data_chunk = chunk.audio
+                    elif hasattr(chunk, 'data'):
+                        audio_data_chunk = chunk.data
+                    else:
+                        audio_data_chunk = chunk
+                    
+                    # テンソルの場合はnumpy配列に変換
+                    if hasattr(audio_data_chunk, 'numpy'):
+                        audio_data_chunk = audio_data_chunk.numpy()
+                    elif hasattr(audio_data_chunk, 'detach'):
+                        audio_data_chunk = audio_data_chunk.detach().cpu().numpy()
+                    
+                    audio_chunks.append(audio_data_chunk)
             
             if not audio_chunks:
                 return None, "音声生成に失敗しました"
             
             print(f"音声チャンク数: {len(audio_chunks)}")
-            print(f"最初のチャンク形状: {audio_chunks[0].shape if hasattr(audio_chunks[0], 'shape') else type(audio_chunks[0])}")
+            
+            # 最初のチャンクの詳細情報を出力
+            first_chunk = audio_chunks[0]
+            print(f"最初のチャンク型: {type(first_chunk)}")
+            print(f"最初のチャンク形状: {first_chunk.shape if hasattr(first_chunk, 'shape') else 'shape属性なし'}")
+            print(f"最初のチャンクデータ型: {first_chunk.dtype if hasattr(first_chunk, 'dtype') else 'dtype属性なし'}")
+            
+            # Resultオブジェクトの場合、利用可能な属性を確認
+            if hasattr(first_chunk, '__dict__'):
+                print(f"利用可能な属性: {list(first_chunk.__dict__.keys())}")
+            if hasattr(first_chunk, '__class__'):
+                print(f"クラス: {first_chunk.__class__}")
+                
+            # ディレクトリ調査
+            print(f"dir()の結果: {[attr for attr in dir(first_chunk) if not attr.startswith('_')]}")
             
             # チャンクを結合
             if len(audio_chunks) == 1:
