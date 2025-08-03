@@ -25,23 +25,45 @@ except ImportError:
     print("kokoroライブラリが必要です。pip install kokoro>=0.9.4")
     exit(1)
 
-# グローバル変数でパイプラインをキャッシュ
-_pipeline = None
+# 言語別パイプラインキャッシュ
+_pipelines = {}
 _pipeline_lock = threading.Lock()
 
-@lru_cache(maxsize=1)
 def get_pipeline(lang_code='a'):
-    """パイプラインをキャッシュして再利用"""
-    global _pipeline
-    if _pipeline is None:
+    """言語別パイプラインをキャッシュして再利用"""
+    global _pipelines
+    if lang_code not in _pipelines:
         with _pipeline_lock:
-            if _pipeline is None:
+            if lang_code not in _pipelines:
                 print(f"Kokoroパイプライン初期化中... (言語: {lang_code})")
-                _pipeline = KPipeline(lang_code=lang_code)
-                print("初期化完了")
-    return _pipeline
+                _pipelines[lang_code] = KPipeline(lang_code=lang_code)
+                print(f"言語 {lang_code} の初期化完了")
+    return _pipelines[lang_code]
 
-def generate_audio(text, voice, speed):
+def detect_language(text, voice):
+    """テキストと音声から言語を自動検出"""
+    # 音声名のプレフィックスから言語を検出
+    voice_prefix = voice.split('_')[0]
+    if voice_prefix.startswith('j'):
+        return 'j'  # Japanese
+    elif voice_prefix.startswith('z'):
+        return 'z'  # Mandarin Chinese
+    elif voice_prefix.startswith('b'):
+        return 'b'  # British English
+    elif voice_prefix.startswith('e'):
+        return 'e'  # Spanish
+    elif voice_prefix.startswith('f'):
+        return 'f'  # French
+    elif voice_prefix.startswith('h'):
+        return 'h'  # Hindi
+    elif voice_prefix.startswith('i'):
+        return 'i'  # Italian
+    elif voice_prefix.startswith('p'):
+        return 'p'  # Brazilian Portuguese
+    else:
+        return 'a'  # American English (default)
+
+def generate_audio(text, voice, speed, language=None):
     """音声生成関数"""
     try:
         if not text.strip():
@@ -50,10 +72,16 @@ def generate_audio(text, voice, speed):
         if len(text) > 1000:
             return None, "テキストが長すぎます（1000文字以下）"
         
-        print(f"TTS生成中: {text[:50]}...")
+        # 言語自動検出または手動指定
+        if language is None:
+            lang_code = detect_language(text, voice)
+        else:
+            lang_code = language
+            
+        print(f"TTS生成中: {text[:50]}... (言語: {lang_code}, 音声: {voice})")
         
         # パイプライン取得
-        pipeline = get_pipeline()
+        pipeline = get_pipeline(lang_code)
         
         # 音声生成 - 正しいKokoro API使用
         try:
@@ -170,20 +198,92 @@ def generate_audio(text, voice, speed):
 def create_interface():
     """Gradio UIを作成"""
     
-    # 利用可能な音声
-    voices = [
-        'af_heart', 'af_sky', 'af_grace', 'af_heaven',
-        'am_adam', 'am_mike', 'bf_iris', 'bf_rose'
-    ]
+    # 全言語の利用可能な音声
+    voices = {
+        "🇺🇸 American English": [
+            'af_heart', 'af_alloy', 'af_aoede', 'af_bella', 'af_jessica', 'af_kore', 
+            'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky',
+            'am_adam', 'am_echo', 'am_eric', 'am_fenrir', 'am_liam', 
+            'am_michael', 'am_onyx', 'am_puck', 'am_santa'
+        ],
+        "🇬🇧 British English": [
+            'bf_alice', 'bf_emma', 'bf_isabella', 'bf_lily',
+            'bm_daniel', 'bm_fable', 'bm_george', 'bm_lewis'
+        ],
+        "🇯🇵 Japanese": [
+            'jf_alpha', 'jf_gongitsune', 'jf_nezumi', 'jf_tebukuro',
+            'jm_kumo'
+        ],
+        "🇨🇳 Mandarin Chinese": [
+            'zf_xiaobei', 'zf_xiaoni', 'zf_xiaoxiao', 'zf_xiaoyi',
+            'zm_yunjian', 'zm_yunxi', 'zm_yunxia', 'zm_yunyang'
+        ],
+        "🇪🇸 Spanish": [
+            'ef_dora', 'em_alex', 'em_santa'
+        ],
+        "🇫🇷 French": [
+            'ff_siwis'
+        ],
+        "🇮🇳 Hindi": [
+            'hf_alpha', 'hf_beta', 'hm_omega', 'hm_psi'
+        ],
+        "🇮🇹 Italian": [
+            'if_sara', 'im_nicola'
+        ],
+        "🇧🇷 Brazilian Portuguese": [
+            'pf_dora', 'pm_alex', 'pm_santa'
+        ]
+    }
     
-    # サンプルテキスト
-    sample_texts = [
-        "Hello, this is Kokoro TTS!",
-        "こんにちは、これはテストです。",
-        "The quick brown fox jumps over the lazy dog.",
-        "日本語の音声合成のテストを行っています。",
-        "Kokoro is a lightweight TTS model with 82 million parameters."
-    ]
+    # フラットなリスト作成
+    all_voices = []
+    for lang, voice_list in voices.items():
+        all_voices.extend(voice_list)
+    
+    # 多言語サンプルテキスト
+    sample_texts = {
+        "🇺🇸 English": [
+            "Hello, this is Kokoro TTS!",
+            "The quick brown fox jumps over the lazy dog.",
+            "Kokoro is a lightweight TTS model with 82 million parameters."
+        ],
+        "🇯🇵 日本語": [
+            "こんにちは、これはテストです。",
+            "日本語の音声合成のテストを行っています。", 
+            "吾輩は猫である。名前はまだ無い。",
+            "美しい夕日が山の向こうに沈んでいく。"
+        ],
+        "🇨🇳 中文": [
+            "你好，这是Kokoro TTS测试。",
+            "今天天气很好，阳光明媚。",
+            "人工智能技术发展迅速。"
+        ],
+        "🇪🇸 Español": [
+            "Hola, esto es una prueba de Kokoro TTS.",
+            "El clima está muy bueno hoy.",
+            "La tecnología avanza rápidamente."
+        ],
+        "🇫🇷 Français": [
+            "Bonjour, ceci est un test de Kokoro TTS.",
+            "La technologie évolue rapidement.",
+            "Il fait beau aujourd'hui."
+        ],
+        "🇮🇳 हिंदी": [
+            "नमस्ते, यह Kokoro TTS का परीक्षण है।",
+            "आज मौसम बहुत अच्छा है।",
+            "तकनीक तेजी से विकसित हो रही है।"
+        ],
+        "🇮🇹 Italiano": [
+            "Ciao, questo è un test di Kokoro TTS.",
+            "Il tempo è molto bello oggi.",
+            "La tecnologia si sviluppa rapidamente."
+        ],
+        "🇧🇷 Português": [
+            "Olá, este é um teste do Kokoro TTS.",
+            "O tempo está muito bom hoje.",
+            "A tecnologia se desenvolve rapidamente."
+        ]
+    }
     
     with gr.Blocks(title="🎤 Kokoro-82M TTS", theme=gr.themes.Soft()) as demo:
         gr.Markdown("""
@@ -206,9 +306,9 @@ def create_interface():
                 
                 with gr.Row():
                     voice_select = gr.Dropdown(
-                        choices=voices,
+                        choices=all_voices,
                         value="af_heart",
-                        label="🎭 音声選択"
+                        label="🎭 音声選択 (言語自動検出)"
                     )
                     speed_slider = gr.Slider(
                         minimum=0.5,
@@ -220,11 +320,14 @@ def create_interface():
                 
                 generate_btn = gr.Button("🎵 音声生成", variant="primary", size="lg")
                 
-                gr.Markdown("### 📋 サンプルテキスト")
+                # 言語別サンプルテキスト
+                gr.Markdown("### 📋 多言語サンプルテキスト")
                 sample_buttons = []
-                for sample in sample_texts:
-                    btn = gr.Button(sample, size="sm")
-                    sample_buttons.append(btn)
+                for lang, texts in sample_texts.items():
+                    gr.Markdown(f"**{lang}**")
+                    for text in texts:
+                        btn = gr.Button(text, size="sm")
+                        sample_buttons.append((btn, text))
             
             with gr.Column():
                 status_output = gr.Textbox(
@@ -246,9 +349,9 @@ def create_interface():
         )
         
         # サンプルテキストボタン
-        for btn, sample in zip(sample_buttons, sample_texts):
+        for btn, text in sample_buttons:
             btn.click(
-                fn=lambda sample=sample: sample,
+                fn=lambda t=text: t,
                 outputs=text_input
             )
         
@@ -260,10 +363,22 @@ def create_interface():
         4. **音声生成**: ボタンクリックで音声生成開始
         5. **再生**: 生成された音声を再生・ダウンロード
         
-        ### 🎭 音声の種類
-        - **af_heart, af_sky, af_grace, af_heaven**: 女性音声
-        - **am_adam, am_mike**: 男性音声  
-        - **bf_iris, bf_rose**: その他音声
+        ### 🌍 対応言語と音声
+        - **🇺🇸 American English**: 11F + 9M (af_heart, am_adam など)
+        - **🇬🇧 British English**: 4F + 4M (bf_emma, bm_daniel など)
+        - **🇯🇵 Japanese**: 4F + 1M (jf_alpha, jm_kumo など)
+        - **🇨🇳 Mandarin Chinese**: 4F + 4M (zf_xiaobei, zm_yunjian など)
+        - **🇪🇸 Spanish**: 1F + 2M (ef_dora, em_alex など)
+        - **🇫🇷 French**: 1F (ff_siwis)
+        - **🇮🇳 Hindi**: 2F + 2M (hf_alpha, hm_omega など)
+        - **🇮🇹 Italian**: 1F + 1M (if_sara, im_nicola)
+        - **🇧🇷 Brazilian Portuguese**: 1F + 2M (pf_dora, pm_alex など)
+        
+        ### 🎭 音声選択のコツ
+        - **j** で始まる音声 → 日本語に最適
+        - **z** で始まる音声 → 中国語に最適
+        - **b** で始まる音声 → イギリス英語
+        - 言語は音声選択で自動検出されます！
         """)
     
     return demo

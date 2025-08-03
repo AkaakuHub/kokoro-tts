@@ -5,3 +5,6 @@ flask-restx
 waitress
 gradio
 numpy
+misaki[ja]
+misaki[zh]
+misaki[en]
