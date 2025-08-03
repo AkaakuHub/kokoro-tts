@@ -5,6 +5,10 @@
 if command -v mecab-config &> /dev/null; then
     export MECAB_DICDIR=$(mecab-config --dicdir)
     echo "MeCab辞書パス: $MECAB_DICDIR"
+    
+    # 辞書ディレクトリの内容確認
+    echo "辞書内容:"
+    ls -la $MECAB_DICDIR/ | head -5
 fi
 
 source "$(dirname "$0")/common.sh"
