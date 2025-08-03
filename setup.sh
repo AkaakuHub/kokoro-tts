@@ -46,17 +46,35 @@ else
     fi
 fi
 
+# 壊れた仮想環境チェック
+if [ -d "venv" ] && [ ! -f "venv/bin/activate" ]; then
+    echo "⚠️  不完全な仮想環境を検出、削除中..."
+    rm -rf venv
+fi
+
 # Python仮想環境作成
 if [ ! -d "venv" ]; then
     echo "Python仮想環境作成中..."
     echo "使用コマンド: $PYTHON_CMD -m venv venv"
-    $PYTHON_CMD -m venv venv
     
-    if [ $? -ne 0 ]; then
-        echo "❌ 仮想環境作成に失敗しました"
-        echo "手動で実行してテスト: $PYTHON_CMD -m venv test_venv"
+    # 詳細エラー出力付きで実行
+    $PYTHON_CMD -m venv venv 2>&1
+    VENV_RESULT=$?
+    
+    if [ $VENV_RESULT -ne 0 ]; then
+        echo "❌ 仮想環境作成に失敗しました（終了コード: $VENV_RESULT）"
+        echo "手動テスト用コマンド: $PYTHON_CMD -m venv test_venv"
         exit 1
     fi
+    
+    # 作成確認
+    if [ ! -f "venv/bin/activate" ]; then
+        echo "❌ activate ファイルが作成されませんでした"
+        echo "venv/bin内容:"
+        ls -la venv/bin/ 2>/dev/null || echo "venv/binが存在しません"
+        exit 1
+    fi
+    
     echo "✅ 仮想環境作成完了"
 else
     echo "既存の仮想環境を使用"
